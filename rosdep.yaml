@@ -1,2 +1,6 @@
 python-opencv:
   ubuntu: python-opencv
+
+python-motmot-camiface:
+  ubuntu: python-motmot-camiface
+

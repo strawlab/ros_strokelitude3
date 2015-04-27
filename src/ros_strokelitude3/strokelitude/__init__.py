@@ -1,0 +1,1 @@
+from ros_strokelitude3.strokelitude.plugin import Strokelitude3Plugin
