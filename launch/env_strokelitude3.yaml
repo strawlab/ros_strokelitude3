@@ -1,0 +1,30 @@
+#
+
+strokelitude3: {
+    camera: {
+        device_num: 0,
+        mode_num: NULL,
+        num_buffers: 30,
+        trigger_mode: NULL,
+        roi: NULL,
+        max_framerate: 100.,
+        prop_config: {
+            shutter: 1,
+            gain: 1,
+            },
+        },
+    microfview: {
+        flipRL: True,
+        flipUD: True,
+        },
+    strokelitude: {
+        center_L: [270, 270],
+        center_R: [370, 270],
+        roi_radius: [200, 265],
+        roi_angles: [-10, 140],
+        roi_mshape: [520, 40],
+        mask_width: 10.,
+        flying_queue_len: 10,
+        },
+    }
+

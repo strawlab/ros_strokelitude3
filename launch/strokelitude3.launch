@@ -1,0 +1,8 @@
+<launch>
+
+  <rosparam command="load" file="$(find ros_strokelitude3)/launch/env_strokelitude3.yaml" />
+  <node name="strokelitude3" pkg="ros_strokelitude3" type="strokelitude3"/>
+  
+</launch>
+
+
