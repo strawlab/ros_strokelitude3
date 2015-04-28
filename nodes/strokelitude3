@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     cam = CameraCapture(**config['camera'])
     fview = Microfview(cam, **config['microfview'])
-    wingbeat = RosStrokelitude3Plugin(**config['strokelitude3'])
+    wingbeat = RosStrokelitude3Plugin(**config['strokelitude'])
     fview.attach_plugin(wingbeat)
 
     try:
