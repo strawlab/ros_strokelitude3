@@ -22,12 +22,18 @@ class RosStrokelitude3Plugin(Strokelitude3Plugin):
 
 if __name__ == "__main__":
 
-    rospy.init_node('/strokelitude3')
+    rospy.init_node('strokelitude3')
 
-    cam = CameraCapture()
-    fview = Microfview(cam)
+    try:
+        config = rospy.get_param('~')
+    except KeyError:
+        print "Please configure this node via env_stroklitude3.yaml and start via:"
+        print "roslaunch ros_strokelitude3 strokelitude3.launch"
+        exit()
 
-    wingbeat = RosStrokelitude3Plugin()
+    cam = CameraCapture(**config['camera'])
+    fview = Microfview(cam, **config['microfview'])
+    wingbeat = RosStrokelitude3Plugin(**config['strokelitude3'])
     fview.attach_plugin(wingbeat)
 
     try:
