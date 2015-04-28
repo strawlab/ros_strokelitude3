@@ -27,7 +27,7 @@ import collections
 import time
 import cv2
 import numpy as np
-import microfview
+import ros_strokelitude3.microfview as microfview
 
 import logging
 logger = microfview.getLogger()
@@ -105,8 +105,12 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
     def is_flying(self, L, R, i_L, i_R):
         """determine if the detected wing angle are valid."""
         N = 3*int(abs(self.mask_width))
-        is_flying =  (L[i_L-N:i_L+N].ptp() > (L.ptp()/3.) and
-                      R[i_R-N:i_R+N].ptp() > (R.ptp()/3.))
+        try:
+            is_flying =  (L[i_L-N:i_L+N].ptp() > (L.ptp()/3.) and
+                          R[i_R-N:i_R+N].ptp() > (R.ptp()/3.))
+        except ValueError as e:
+            self.logger.error(e.message)
+            is_flying = False
         # get rid off single false negatives
         self.is_flying_queue.append(is_flying)
         return sum(self.is_flying_queue) > len(self.is_flying_queue)/2
