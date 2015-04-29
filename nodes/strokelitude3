@@ -4,6 +4,7 @@ import roslib
 roslib.load_manifest('ros_strokelitude3')
 
 import rospy
+import sys
 from ros_strokelitude3.msg import WingBeatInfo
 from ros_strokelitude3.microfview import Microfview, CameraCapture
 from ros_strokelitude3.strokelitude import Strokelitude3Plugin

@@ -3,14 +3,14 @@
 strokelitude3: {
     camera: {
         device_num: 0,
-        mode_num: NULL,
+        # mode_num: NULL,  # would require allow_none
         num_buffers: 30,
-        trigger_mode: NULL,
-        roi: NULL,
+        # trigger_mode: NULL,
+        # roi: NULL,
         max_framerate: 100.,
         prop_config: {
-            shutter: 1,
-            gain: 1,
+            shutter: 1500,
+            gain: 100,
             },
         },
     microfview: {
