@@ -43,20 +43,20 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
                        flying_queue_len=10):
         super(Strokelitude3Plugin, self).__init__(every=1, max_start_delay_sec=0.001)
         # basic config
-        self.wing_center_L = center_L
-        self.wing_center_R = center_R
-        self.roi_radius = roi_radius
-        self.roi_angles = roi_angles
-        self.roi_mshape = roi_mshape
-        self.mask_width = mask_width
+        self.wing_center_L = tuple(center_L)
+        self.wing_center_R = tuple(center_R)
+        self.roi_radius = tuple(roi_radius)
+        self.roi_angles = tuple(roi_angles)
+        self.roi_mshape = tuple(roi_mshape)
+        self.mask_width = float(mask_width)
         self.map_L, self.map_R = self.create_coordinates_maps(self.roi_angles,
                                                               self.roi_radius,
                                                               self.roi_mshape)
-        self.correlation_edge_mask = self.create_correlation_edge_mask(mask_width)
+        self.correlation_edge_mask = self.create_correlation_edge_mask(self.mask_width)
 
         # flying detection
-        self.is_flying_queue = collections.deque([False]*flying_queue_len,
-                                                         flying_queue_len)
+        self.is_flying_queue = collections.deque([False]*int(flying_queue_len),
+                                                         int(flying_queue_len))
 
         # frequency detection
         self._init_frequency_measurement()
@@ -109,7 +109,7 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
             is_flying =  (L[i_L-N:i_L+N].ptp() > (L.ptp()/3.) and
                           R[i_R-N:i_R+N].ptp() > (R.ptp()/3.))
         except ValueError as e:
-            self.logger.error(e.message)
+            self.logger.debug(e.message)
             is_flying = False
         # get rid off single false negatives
         self.is_flying_queue.append(is_flying)
