@@ -9,7 +9,7 @@ strokelitude3: {
         # roi: NULL,
         max_framerate: 100.,
         prop_config: {
-            shutter: 1500,
+            shutter: 8000,
             gain: 100,
             },
         },
