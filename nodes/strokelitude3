@@ -7,6 +7,7 @@ import rospy
 import sys
 from ros_strokelitude3.msg import WingBeatInfo
 from ros_strokelitude3.microfview import Microfview, CameraCapture
+from ros_strokelitude3.microfview.video import FMFWriter
 from ros_strokelitude3.strokelitude import Strokelitude3Plugin
 
 
@@ -32,9 +33,16 @@ if __name__ == "__main__":
         print "roslaunch ros_strokelitude3 strokelitude3.launch"
         exit()
 
+
     cam = CameraCapture(**config['camera'])
     fview = Microfview(cam, **config['microfview'])
     wingbeat = RosStrokelitude3Plugin(**config['strokelitude'])
+
+    #fmfi = sys.argv.index('--save')
+    #if fmfi > 0:
+    #    fmfw = FMFWriter(sys.argv[fmfi+1])
+    #    fview.attach_plugin(fmfw)
+
     fview.attach_plugin(wingbeat)
 
     try:

@@ -3,6 +3,7 @@
 Provides FMFCapture class for FlyMovieFormat videos.
 """
 import motmot.FlyMovieFormat.FlyMovieFormat as fmf
+from ros_strokelitude3.microfview.plugin import BlockingPlugin
 import time
 
 import logging
@@ -46,4 +47,18 @@ class FMFCapture(fmf.FlyMovie):
     def get_last_framenumber(self):
         """returns the framenumber of the last frame."""
         return self._frame_number
+
+class FMFWriter(BlockingPlugin):
+
+    def __init__(self, fname):
+        self.saver = fmf.FlyMovieSaver(fname)
+        super(FMFWriter, self).__init__()
+
+    def process_frame(self, frame, now, buf):
+        self.saver.add_frame(buf, now)
+
+    def stop(self):
+        self.saver.close()
+        super(FMFWriter, self).stop()
+
 
