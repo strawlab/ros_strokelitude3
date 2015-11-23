@@ -158,9 +158,9 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         #==============================
         # WING BEAT FREQUENCY ESTIMATE
         #==============================
-        #freq, freq_err = self.get_frequency_estimate(wb_L[-self.freq_roi_Nrows:,:].sum(),
-        #                                             wb_R[-self.freq_roi_Nrows:,:].sum(), now)
-        freq, freq_err = 0.,0.
+        freq, freq_err = self.get_frequency_estimate(wb_L[-self.freq_roi_Nrows:,:].sum(),
+                                                     wb_R[-self.freq_roi_Nrows:,:].sum(), now)
+        #freq, freq_err = 0.,0.
         # publish
         self.publish_message(is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err)
 
