@@ -136,8 +136,15 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         #===========================
         wb_L = cv2.remap(buf, self.map_L[0], self.map_L[1], cv2.INTER_LINEAR)
         wb_R = cv2.remap(buf, self.map_R[0], self.map_R[1], cv2.INTER_LINEAR)
-        L = wb_L.mean(axis=1)
-        R = wb_R.mean(axis=1)
+        ###<HACK>
+        THRESH = 120
+        wb_L = wb_L.astype(np.float32)
+        wb_R = wb_R.astype(np.float32)
+        wb_L[wb_L<THRESH] = float('nan')
+        wb_R[wb_R<THRESH] = float('nan')
+        ###</HACK>
+        L = np.nanmean(wb_L, axis=1)
+        R = np.nanmean(wb_R, axis=1)
         L_end, L_start = L[-10:].mean(), L[:10].mean()
         R_end, R_start = R[-10:].mean(), R[:10].mean()
         L -= (L_end - L_start) * np.linspace(0, 1.0, L.size, endpoint=False) + L_start
