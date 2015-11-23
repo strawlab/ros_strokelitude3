@@ -32,7 +32,7 @@ import ros_strokelitude3.microfview as microfview
 import logging
 logger = microfview.getLogger()
 
-class Strokelitude3Plugin(microfview.NonBlockingPlugin):
+class Strokelitude3Plugin(microfview.BlockingPlugin):
 
     def __init__(self, center_L=(270, 270),
                        center_R=(370, 270),
@@ -41,7 +41,7 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
                        roi_mshape=(520, 40),
                        mask_width=10.,
                        flying_queue_len=10):
-        super(Strokelitude3Plugin, self).__init__(every=1, max_start_delay_sec=0.001)
+        super(Strokelitude3Plugin, self).__init__(every=1) # , max_start_delay_sec=0.001)
         # basic config
         self.wing_center_L = tuple(center_L)
         self.wing_center_R = tuple(center_R)
@@ -165,8 +165,8 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
         self.publish_message(is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err)
 
         # Draw all the HUD things
-        self._show_hud_wingbeat_array("wingbeat_left", wb_L, i_L)
-        self._show_hud_wingbeat_array("wingbeat_right", wb_R, i_R)
+        #self._show_hud_wingbeat_array("wingbeat_left", wb_L, i_L)
+        #self._show_hud_wingbeat_array("wingbeat_right", wb_R, i_R)
         if not is_flying:
             angle_L = 0.0
             angle_R = 0.0
@@ -261,15 +261,15 @@ class Strokelitude3Plugin(microfview.NonBlockingPlugin):
         """helper function to create the windows and move them in place."""
         space = 10
         cv2.namedWindow("wingbeat_angles")
-        cv2.namedWindow("wingbeat_left")
-        cv2.namedWindow("wingbeat_right")
-        cv2.moveWindow("wingbeat_left", 0, 0)
-        cv2.moveWindow("wingbeat_right", self.roi_mshape[1]+space, 0)
+        #cv2.namedWindow("wingbeat_left")
+        #cv2.namedWindow("wingbeat_right")
+        #cv2.moveWindow("wingbeat_left", 0, 0)
+        #cv2.moveWindow("wingbeat_right", self.roi_mshape[1]+space, 0)
         cv2.moveWindow("wingbeat_angles", 2*self.roi_mshape[1]+2*space, 0)
 
     def _show_hud_wingbeat_array(self, window, wb_arr, wb_idx):
         """show the wingbeat array HUD with detected wingbeat angle."""
-        wb_arr = cv2.equalizeHist(wb_arr)
+        #wb_arr = cv2.equalizeHist(wb_arr)
         wb_arr = cv2.cvtColor(wb_arr, cv2.COLOR_GRAY2BGR)
         cv2.line(wb_arr, (0, wb_idx), (wb_arr.shape[1], wb_idx), self.color_detected, 2)
         cv2.imshow(window, wb_arr)
