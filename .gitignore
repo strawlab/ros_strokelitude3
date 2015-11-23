@@ -1,0 +1,6 @@
+msg_gen
+src/ros_strokelitude3/msg
+build
+
+*.pyc
+*.fmf
