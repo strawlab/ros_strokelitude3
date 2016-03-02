@@ -32,6 +32,15 @@ import ros_strokelitude3.microfview as microfview
 import logging
 logger = microfview.getLogger()
 
+import mmapspeedup
+import multiprocessing as mp
+
+# HACK CAMERA FRAME SHAPE
+CAMERA_FRAME_SHAPE = (494, 659)
+CAMERA_FRAME_DTYPE = np.uint8
+#/HACK
+
+
 class Strokelitude3Plugin(microfview.BlockingPlugin):
 
     def __init__(self, center_L=(270, 270),
@@ -62,9 +71,7 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         self._init_frequency_measurement()
 
         # HUD config
-        self.color_hud = (0, 255, 0)
-        self.color_detected = (0, 0, 255)
-        self._show_hud_prepare_windows()
+        self.HUDPROCESS = Strokelitude3HUD(self.wing_center_L, self.wing_center_R, self.roi_angles, self.roi_radius)
 
         # time display
         self._debug_process_frame_now = time.time()
@@ -166,24 +173,20 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         # WING BEAT FREQUENCY ESTIMATE
         #==============================
         freq, freq_err = self.get_frequency_estimate(wb_L[-self.freq_roi_Nrows:,:].sum(),
-                                                     wb_R[-self.freq_roi_Nrows:,:].sum(), now)
-        #freq, freq_err = 0.,0.
+                                                 wb_R[-self.freq_roi_Nrows:,:].sum(), now)
         # publish
         self.publish_message(is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err)
 
-        # Draw all the HUD things
-        #self._show_hud_wingbeat_array("wingbeat_left", wb_L, i_L)
-        #self._show_hud_wingbeat_array("wingbeat_right", wb_R, i_R)
         if not is_flying:
             angle_L = 0.0
             angle_R = 0.0
-        self._show_hud_fly("wingbeat_angles", buf, angle_L, angle_R)
+        self.HUDPROCESS.SEND_ARRAY[:] = buf
+        self.HUDPROCESS.wbaL.value = angle_L
+        self.HUDPROCESS.wbaR.value = angle_R
 
         # time debug 
         self._debug_process_frame_end(now)
 
-        # update the cv2 main loop
-        cv2.waitKey(1)
 
     def _init_frequency_measurement(self, win_len=40,
                                           ptp_thresh=0.2,
@@ -252,8 +255,11 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
 
     def stop(self):
         """stops the plugin."""
-        cv2.destroyAllWindows()
+        self.logger.info("Strokelitude calling stop")
+        self.HUDPROCESS.stop()
+        self.logger.info("StrokelitudeHUD exited.")
         super(Strokelitude3Plugin, self).stop()
+        self.logger.info("PluginBaseClass stopped.")
 
     def _debug_process_frame_end(self, process_frame_now):
         """helper function for duration debugging."""
@@ -264,24 +270,50 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
             self.logger.debug("fps: %8.3f took: %f", fps, duration)
             self._debug_process_frame_now = process_frame_now
 
+
+
+
+class Strokelitude3HUD(object):
+
+    def __init__(self, center_L, center_R, roi_angles, roi_radius):
+        # basic config
+        self.wing_center_L = tuple(center_L)
+        self.wing_center_R = tuple(center_R)
+        self.roi_radius = tuple(roi_radius)
+        self.roi_angles = tuple(roi_angles)
+        self.color_hud = (0, 255, 0)
+        self.color_detected = (0, 0, 255)
+        self.window = "wingbeat_angles"
+        self.framerate = 45.
+        self._STOP = mp.Value('b', 0)
+        self.wbaL = mp.Value('d', 0.0, lock=False)
+        self.wbaR = mp.Value('d', 0.0, lock=False)
+        m = mmapspeedup.FastInSlowOutSharedArray(CAMERA_FRAME_SHAPE, CAMERA_FRAME_DTYPE)
+        self.SEND_ARRAY = m.get_input_array()
+        self.p = mp.Process(target=self.mainloop, args=(self._STOP, self.wbaL, self.wbaR, m._fn))
+        self.p.daemon = True
+        self.p.start()
+
+    def mainloop(self, stop, wbaL, wbaR, fn):
+        self.interval_msec = max(int(1000./self.framerate), 1)
+        self._show_hud_prepare_windows()
+        buf = np.zeros(CAMERA_FRAME_SHAPE, dtype=CAMERA_FRAME_DTYPE)
+        while True:
+            buf[:] = np.memmap(fn, dtype=CAMERA_FRAME_DTYPE, mode='r', shape=CAMERA_FRAME_SHAPE)
+            _wbaL = wbaL.value
+            _wbaR = wbaR.value
+            self._show_hud_fly(buf, _wbaL, _wbaR)
+            if (stop.value) != 0:
+                logger.info("StrokelitudeHUD exiting mainloop")
+                break
+            cv2.waitKey(self.interval_msec)
+
     def _show_hud_prepare_windows(self):
         """helper function to create the windows and move them in place."""
         space = 10
-        cv2.namedWindow("wingbeat_angles")
-        #cv2.namedWindow("wingbeat_left")
-        #cv2.namedWindow("wingbeat_right")
-        #cv2.moveWindow("wingbeat_left", 0, 0)
-        #cv2.moveWindow("wingbeat_right", self.roi_mshape[1]+space, 0)
-        cv2.moveWindow("wingbeat_angles", 2*self.roi_mshape[1]+2*space, 0)
+        cv2.namedWindow(self.window)
 
-    def _show_hud_wingbeat_array(self, window, wb_arr, wb_idx):
-        """show the wingbeat array HUD with detected wingbeat angle."""
-        #wb_arr = cv2.equalizeHist(wb_arr)
-        wb_arr = cv2.cvtColor(wb_arr, cv2.COLOR_GRAY2BGR)
-        cv2.line(wb_arr, (0, wb_idx), (wb_arr.shape[1], wb_idx), self.color_detected, 2)
-        cv2.imshow(window, wb_arr)
-
-    def _show_hud_fly(self, window, frame, angle_L, angle_R):
+    def _show_hud_fly(self, frame, angle_L, angle_R):
         """show the fly image with HUD and detected wingbeat angles."""
         out = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         self._draw_hud_point(out, self.wing_center_L)
@@ -290,22 +322,11 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         self._draw_hud_wing_arc(out, self.wing_center_R, 'right')
         self._draw_hud_wing_line(out, self.wing_center_L, angle_L, 'left')
         self._draw_hud_wing_line(out, self.wing_center_R, angle_R, 'right')
-        cv2.imshow(window, out)
+        cv2.imshow(self.window, out)
 
     def _draw_hud_point(self, img, point, radius=5):
         """helper function for drawing the HUD."""
         cv2.circle(img, point, radius, self.color_hud, thickness=3)
-
-    def _draw_hud_wing_line(self, img, center, angle, side):
-        """helper function for drawing the HUD."""
-        if side == 'left':
-            angle = np.pi/2. + angle
-        else:  # side == right
-            angle = np.pi/2. - angle
-        cx, cy = center
-        R = 2 * self.roi_radius[1]
-        px, py = (R * np.cos(angle)) + cx, (R * np.sin(angle)) + cy
-        cv2.line(img, (cx, cy), (int(px), int(py)), self.color_detected, 2)
 
     def _draw_hud_wing_arc(self, img, center, pos):
         """helper function for drawing the HUD."""
@@ -332,6 +353,33 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         y1 = int(radius[1]*phi1_sin + center[1])
         cv2.line(img, (x0, y0), (x1, y1), self.color_hud, 2)
 
+    def _draw_hud_wing_line(self, img, center, angle, side):
+        """helper function for drawing the HUD."""
+        if side == 'left':
+            angle = np.pi/2. + angle
+        else:  # side == right
+            angle = np.pi/2. - angle
+        cx, cy = center
+        R = 2 * self.roi_radius[1]
+        px, py = (R * np.cos(angle)) + cx, (R * np.sin(angle)) + cy
+        cv2.line(img, (cx, cy), (int(px), int(py)), self.color_detected, 2)
+
+    def stop(self):
+        logger.info("StrokelitudeHUD calling stop")
+        try:
+            self._STOP.value = 1
+            self.p.join(2)
+        finally:
+            logger.info("StrokelitudeHUD escalating to SIGTERM")
+            self.p.terminate()
+            self.p = None
+            logger.info("StrokelitudeHUD terminated.")
+            cv2.destroyAllWindows()
+            logger.info("StrokelitudeHUD cv2.destroyAllWindows() returned.")
+
+
+
+
 
 if __name__ == "__main__":
 
@@ -345,7 +393,6 @@ if __name__ == "__main__":
 
     testplugin = Strokelitude3Plugin()
     testplugin.logger.setLevel(logging.DEBUG)
-    #fview.attach_plugin(testplugin)
     fview.attach_plugin(testplugin)
 
     try:
