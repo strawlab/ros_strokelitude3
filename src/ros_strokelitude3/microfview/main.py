@@ -141,8 +141,10 @@ class Microfview(threading.Thread):
             # stop the plugins
             for plugin in self._plugins:
                 plugin.stop()
+        logger.info("microfview mainloop exit")
 
     def stop(self):
         """stop the mainloop."""
+        logger.info("calling microfview.stop()")
         with self._lock:
             self._run = False
