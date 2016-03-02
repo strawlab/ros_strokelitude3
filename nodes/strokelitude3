@@ -41,6 +41,6 @@ if __name__ == "__main__":
         fview.start()
         rospy.spin()
     except KeyboardInterrupt:
-        pass
+        rospy.signal_shutdown("user request.")
     finally:
         fview.stop()
