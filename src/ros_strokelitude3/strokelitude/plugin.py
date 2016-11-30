@@ -76,6 +76,13 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         # time display
         self._debug_process_frame_now = time.time()
 
+        # FREIBURG FIX: the background illumination in Freiburg is very non
+        # homogeneous. So instead of replacing the IR lighting we substract
+        # a numpy array with the background image without any fly.
+        self.mean_background_image = np.load('/opt/ros/ros-flycave.electric.boost1.46/'
+            'ros_strokelitude3/src/ros_strokelitude3/strokelitude/meanbg.npz')['arr_0']
+        self.mean_background_value = np.mean(self.mean_background_image)
+
     def create_correlation_edge_mask(self, width=10.):
         """calculate the mask used to detect the wing edge."""
         N = 2*int(abs(width))
@@ -113,8 +120,9 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         """determine if the detected wing angle are valid."""
         N = 3*int(abs(self.mask_width))
         try:
-            is_flying =  (L[i_L-N:i_L+N].ptp() > (L.ptp()/3.) and
-                          R[i_R-N:i_R+N].ptp() > (R.ptp()/3.))
+            is_flying =  (L[i_L-N:i_L+N].ptp() > (L.ptp()*0.33) and
+                          R[i_R-N:i_R+N].ptp() > (R.ptp()*0.33) and
+                          np.max(L) > 100.0 and np.max(R) > 100)
         except ValueError as e:
             self.logger.debug(e.message)
             is_flying = False
@@ -141,10 +149,14 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         #===========================
         # WING EDGE ANGLE DETECTION
         #===========================
+
+        ### FREIBURG: compensate for inhomogeneous background illumination
+        buf = buf - self.mean_background_image + self.mean_background_value
+
         wb_L = cv2.remap(buf, self.map_L[0], self.map_L[1], cv2.INTER_LINEAR)
         wb_R = cv2.remap(buf, self.map_R[0], self.map_R[1], cv2.INTER_LINEAR)
         ###<HACK>
-        THRESH = 120
+        THRESH = self.mean_background_value - 30
         wb_L = wb_L.astype(np.float32)
         wb_R = wb_R.astype(np.float32)
         wb_L[wb_L<THRESH] = float('nan')

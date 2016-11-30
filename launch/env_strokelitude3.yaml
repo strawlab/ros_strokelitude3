@@ -9,7 +9,7 @@ strokelitude3: {
         # roi: NULL,
         max_framerate: 100.,
         prop_config: {
-            shutter: 8900,
+            shutter: 9200,
             gain: 100,
             },
         },
@@ -20,10 +20,10 @@ strokelitude3: {
     strokelitude: {
         center_L: [270, 270],
         center_R: [370, 270],
-        roi_radius: [185, 265],
+        roi_radius: [190, 235],
         roi_angles: [-2, 120],
         roi_mshape: [520, 40],
-        mask_width: 10.,
+        mask_width: 15.,
         flying_queue_len: 10,
         },
     }
