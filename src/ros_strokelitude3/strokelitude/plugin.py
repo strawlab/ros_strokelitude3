@@ -159,11 +159,11 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         THRESH = self.mean_background_value - 30
         wb_L = wb_L.astype(np.float32)
         wb_R = wb_R.astype(np.float32)
-        wb_L[wb_L<THRESH] = float('nan')
-        wb_R[wb_R<THRESH] = float('nan')
+        wb_L[wb_L<THRESH] = self.mean_background_value
+        wb_R[wb_R<THRESH] = self.mean_background_value
         ###</HACK>
-        L = np.nanmean(wb_L, axis=1)
-        R = np.nanmean(wb_R, axis=1)
+        L = np.mean(wb_L, axis=1)
+        R = np.mean(wb_R, axis=1)
         L_end, L_start = L[-10:].mean(), L[:10].mean()
         R_end, R_start = R[-10:].mean(), R[:10].mean()
         L -= (L_end - L_start) * np.linspace(0, 1.0, L.size, endpoint=False) + L_start
