@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+import roslib
+roslib.load_manifest('ros_strokelitude3')
+
+import rospy
+import sys
+from ros_strokelitude3.msg import WingBeatInfo
+import time
+
+class RosStrokelitude3TestEmitter(object):
+
+    def __init__(self, *args, **kwargs):
+        self._pub = rospy.Publisher('/strokelitude3', WingBeatInfo)
+
+    def publish_message(self):
+        msg = WingBeatInfo(True, 0.1, 0.0001, 0.002, 0.0001, 230., 15.)
+        self._pub.publish(msg)
+
+
+if __name__ == "__main__":
+
+    rospy.init_node('strokelitude3_test_emitter')
+
+    wingbeat = RosStrokelitude3TestEmitter()
+
+    while True:
+        wingbeat.publish_message()
+        time.sleep(0.01)
