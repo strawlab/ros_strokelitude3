@@ -18,9 +18,9 @@ strokelitude3: {
         flipUD: True,
         },
     strokelitude: {
-        center_L: [270, 270],
-        center_R: [370, 270],
-        roi_radius: [190, 235],
+        center_L: [280, 290],
+        center_R: [380, 290],
+        roi_radius: [190, 285],
         roi_angles: [-2, 120],
         roi_mshape: [520, 40],
         mask_width: 15.,
