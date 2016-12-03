@@ -16,8 +16,8 @@ class RosStrokelitude3Plugin(Strokelitude3Plugin):
         super(RosStrokelitude3Plugin, self).__init__(*args, **kwargs)
         self._pub = rospy.Publisher('/strokelitude3', WingBeatInfo)
 
-    def publish_message(self, is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err):
-        msg = WingBeatInfo(is_flying, angle_L, err_L, angle_R, err_R, freq, freq_err)
+    def publish_message(self, is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err, leg_mean, leg_ptp):
+        msg = WingBeatInfo(is_flying, angle_L, err_L, angle_R, err_R, freq, freq_err, leg_mean, leg_ptp)
         self._pub.publish(msg)
 
 

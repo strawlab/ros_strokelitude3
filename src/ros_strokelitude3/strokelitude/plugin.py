@@ -40,6 +40,8 @@ CAMERA_FRAME_SHAPE = (494, 659)
 CAMERA_FRAME_DTYPE = np.uint8
 #/HACK
 
+LEGHEIGHT = 20
+LEGWIDTH = 150
 
 class Strokelitude3Plugin(microfview.BlockingPlugin):
 
@@ -69,6 +71,12 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
 
         # frequency detection
         self._init_frequency_measurement()
+
+        # legs:
+        Y = self.wing_center_L[1] - self.roi_radius[0]
+        W = LEGWIDTH
+        C = int((self.wing_center_R[0] + self.wing_center_L[0])/2)
+        self.leg_slice = slice(Y,Y+LEGHEIGHT,1), slice(C-W, C+W,1)
 
         # HUD config
         self.HUDPROCESS = Strokelitude3HUD(self.wing_center_L, self.wing_center_R, self.roi_angles, self.roi_radius)
@@ -186,8 +194,9 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         #==============================
         freq, freq_err = self.get_frequency_estimate(wb_L[-self.freq_roi_Nrows:,:].sum(),
                                                  wb_R[-self.freq_roi_Nrows:,:].sum(), now)
+        leg_mean, leg_ptp = buf[self.leg_slice].mean(), buf[self.leg_slice].ptp()
         # publish
-        self.publish_message(is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err)
+        self.publish_message(is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err, leg_mean, leg_ptp)
 
         if not is_flying:
             angle_L = 0.0
@@ -258,7 +267,7 @@ class Strokelitude3Plugin(microfview.BlockingPlugin):
         return (fL + fR)/2., err
 
 
-    def publish_message(self, is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err):
+    def publish_message(self, is_flying, angle_L, angle_R, err_L, err_R, freq, freq_err, leg_mean, leg_ptp):
         isf = "F" if is_flying else "X"
         self.logger.info("%s [L]%6.1f+-%5.1f deg [R]%6.1f+-%5.1f deg [F]%6.1f+-%5.1f", isf,
                                         np.degrees(angle_L), np.degrees(err_L),
@@ -293,8 +302,12 @@ class Strokelitude3HUD(object):
         self.wing_center_R = tuple(center_R)
         self.roi_radius = tuple(roi_radius)
         self.roi_angles = tuple(roi_angles)
+        self.leg_c = (int((self.wing_center_R[0] + self.wing_center_L[0])/2),
+                      int(self.wing_center_L[1] - self.roi_radius[0]))
+        self.leg_w = LEGWIDTH
         self.color_hud = (0, 255, 0)
         self.color_detected = (0, 0, 255)
+        self.color_leg = (0, 255, 255)
         self.window = "wingbeat_angles"
         self.framerate = 45.
         self._STOP = mp.Value('b', 0)
@@ -334,6 +347,7 @@ class Strokelitude3HUD(object):
         self._draw_hud_wing_arc(out, self.wing_center_R, 'right')
         self._draw_hud_wing_line(out, self.wing_center_L, angle_L, 'left')
         self._draw_hud_wing_line(out, self.wing_center_R, angle_R, 'right')
+        self._draw_hud_leg_box(out, self.leg_c, self.leg_w, LEGHEIGHT)
         cv2.imshow(self.window, out)
 
     def _draw_hud_point(self, img, point, radius=5):
@@ -375,6 +389,16 @@ class Strokelitude3HUD(object):
         R = 2 * self.roi_radius[1]
         px, py = (R * np.cos(angle)) + cx, (R * np.sin(angle)) + cy
         cv2.line(img, (cx, cy), (int(px), int(py)), self.color_detected, 2)
+
+    def _draw_hud_leg_box(self, img, center, halfwidth, height):
+        """helper function for drawing the HUD."""
+        cx, cy = center
+        R = 2 * self.roi_radius[1]
+        TL_x = cx - int(halfwidth)
+        TL_y = cy
+        BR_x = cx + int(halfwidth)
+        BR_y = cy + height
+        cv2.rectangle(img, (TL_x, TL_y), (BR_x, BR_y), self.color_leg, 2)
 
     def stop(self):
         logger.info("StrokelitudeHUD calling stop")
